@@ -7,13 +7,14 @@ default rel            ; make [rel format] the default, you always want this.
 section .rodata
    request_input: db "Enter a number: ", 10, 0
    invalid_input_msg: db "Number must be 0<n<24!", 10, 0
-   result_msg: db "The factorial of your number is: %d", 13, 10, 0
-   input_format: db "%d",0
+   result_msg: db "The factorial of your number is: %f", 13, 10, 0
+   input_format: db "%f",0
 
-section .data
-   input: dd  0
-   next: dd  0
-   result: dd 1
+section .data noexec write
+   limit: dd 24.0
+   input: dd  0.0
+   next: dd  0.0
+   result: dd 1.0
 
 section .text
 main:
@@ -29,36 +30,48 @@ factorial_setup:
    xor eax, eax      ; no xmm registers
    call scanf        ; stores input in input
 
-   cmp byte [input], 24
-   jg invalid_input          ; jump to l1
-   cmp byte [input], 1
-   je print_result          ; jump to l1
-   cmp byte [input], 0
-   jng invalid_input          ; jump to l1
-
    finit
+   fld dword [input]
+   fld dword [input]
 
-   ;store initial value
-   fild   dword [input]
-   mov   r12, [input]   ; "%x" takes a 32-bit unsigned int
+
+   fld dword [limit]
+   fcomp   st0, st1               ;compare st0 with st1
+   fstsw  ax                     ;ax := fpu status register
+   and    eax, 0100011100000000B ;take only condition code flags
+   cmp    eax, 0000000100000000B ;is limit < input ?
+   je     invalid_input
+
+   fld1
+   fcomp   st0, st1               ;compare st0 with st1
+   fstsw  ax                     ;ax := fpu status register
+   and    eax, 0100011100000000B ;take only condition code flags
+   cmp    eax, 0100000000000000B ;is st0 = source ?
+   je     print_result
+   cmp    eax, 0000000000000000B ;is st0 > source ?
+   je     invalid_input
 
 factorial_loop:
 
    ;decrease value by 1
-   sub   r12,  1
+   fld1
+   fsubp st1, st0
 
-   ;store decreased value
-   mov [next], r12
-   fild dword [next]
+   ;stores the decreased value as counter
+   fst dword [next]
 
-   ;multiply
    fmul
+   fld dword [next]
 
-   cmp byte [next], 1
-   jg factorial_loop
+   fld1
+   fcomp   st0, st1               ;compare st0 with st1
+   fstsw  ax                     ;ax := fpu status register
+   and    eax, 0100011100000000B ;take only condition code flags
+   cmp    eax, 0100000000000000B ;is st0 = 1 ?
+   jne     factorial_loop
 
-   ;extract final value
-   fistp   dword [result]
+   fincstp  ;pops the 1 left from iteration
+   fstp   dword [result] ;writes and pops the result
 
 print_result:
    mov   rsi, [result]
