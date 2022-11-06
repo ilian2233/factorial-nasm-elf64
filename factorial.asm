@@ -20,12 +20,12 @@ main:
 
 factorial_setup:
    mov   rdi,  request_input    ; set printf message
-   xor   eax,  eax              ; no xmm registers
+   xor   rax,  rax              ; no xmm registers
    call  printf                 ; call printf
 
    lea   rdi,  [input_format]   ; set format
    lea   rsi,  [input]          ; set address of input buffer
-   xor   eax,  eax              ; no xmm registers
+   xor   rax,  rax              ; no xmm registers
    call  scanf                  ; call scanf
 
    finit                        ; initializes FPU (clears FPU registers when wrong input)
@@ -35,17 +35,17 @@ factorial_setup:
    fld   dword[limit]            ; push limit to FPU
    fcomp st0,  st1               ; compare st0 with st1, pop st0 (limit with input)
    fstsw ax                      ; ax := fpu status register
-   and   eax,  0100011100000000B ; take only condition code flags
-   cmp   eax,  0000000100000000B ; is limit < input ?
+   and   rax,  0100011100000000B ; take only condition code flags
+   cmp   rax,  0000000100000000B ; is limit < input ?
    je    invalid_input           ; jump if ^ is true
 
    fld1                          ; push 1 to FPU
    fcomp st0,  st1               ; compare st0 with st1, pop st0 (1 with input)
    fstsw ax                      ; ax := fpu status register
-   and   eax,  0100011100000000B ; take only condition code flags
-   cmp   eax,  0100000000000000B ; is 1 = input ?
+   and   rax,  0100011100000000B ; take only condition code flags
+   cmp   rax,  0100000000000000B ; is 1 = input ?
    je    print_result            ; jump if ^ is true
-   cmp   eax,  0000000000000000B ; is 1 > input ?
+   cmp   rax,  0000000000000000B ; is 1 > input ?
    je    invalid_input           ; jump if ^ is true
 
 factorial_loop:
@@ -61,8 +61,8 @@ factorial_loop:
    fld1                             ; push 1 to FPU
    fcomp st0,  st1                  ; compare st0 with st1, pop st0 (1 with next)
    fstsw ax                         ; ax := fpu status register
-   and   eax,  0100011100000000B    ; take only condition code flags
-   cmp   eax,  0100000000000000B    ; is next = 1 ?
+   and   rax,  0100011100000000B    ; take only condition code flags
+   cmp   rax,  0100000000000000B    ; is next = 1 ?
    jne   factorial_loop             ; jump if ^ is not true
 
    fincstp              ; pop the top of the stack
@@ -79,6 +79,6 @@ print_result:
 
 invalid_input:
    mov   rdi,  invalid_input_msg    ; load format for printf
-   xor   eax,  eax                  ; no xmm registers (no additional parameters needed)
+   xor   rax,  rax                  ; no xmm registers (no additional parameters needed)
    call  printf                     ; calls printf
    jmp   factorial_setup            ; unconditional return to start
